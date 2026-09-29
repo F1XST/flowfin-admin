@@ -4,48 +4,178 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FlowFin Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ล็อกเวอร์ชันและตรวจ hash (SRI) กันไฟล์ถูกแก้ระหว่างทาง ถ้าจะอัปเดตเวอร์ชัน ต้องคำนวณ hash ใหม่ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"
         integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok"
         crossorigin="anonymous"></script>
 <style>
+  :root {
+    --purple: #5B2FD6; --purple-l: #EFE7FE; --bg: #F4F3FB; --ink: #1F1B3A; --muted: #6B6880;
+    --line: #ECEAF5; --green: #15803D; --red: #C62828; --amber: #B45309;
+  }
   * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', sans-serif; background: #F7F7FB; margin: 0; padding: 24px; color: #333; }
-  h2 { color: #7C3AED; margin: 0 0 4px; }
-  h3 { font-size: 16px; margin: 24px 0 10px; }
-  button { background: #7C3AED; color: white; border: none; padding: 9px 18px; border-radius: 18px; cursor: pointer; font-size: 14px; }
-  button.small { padding: 5px 12px; font-size: 12px; }
-  button.danger { background: #EF4444; }
-  button.gray { background: #64748B; }
-  input, select, textarea { padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: inherit; }
+  body { margin: 0; font-family: 'Noto Sans Thai', 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); }
+  h1 { font-size: 26px; margin: 0; }
+  h3 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+  a { cursor: pointer; }
+  svg { flex-shrink: 0; }
   .hidden { display: none !important; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-  .nav a { color: #7C3AED; text-decoration: none; font-size: 14px; margin-right: 16px; cursor: pointer; padding-bottom: 4px; }
-  .nav a.active { border-bottom: 2px solid #7C3AED; font-weight: bold; }
-  .msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-  .msg.success { background: #F0FDF4; color: #16A34A; }
-  .msg.error { background: #FEF2F2; color: #DC2626; }
-  .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+
+  /* ---------- ปุ่ม / ช่องกรอก ---------- */
+  button { font-family: inherit; cursor: pointer; border: 0; }
+  .btn { height: 40px; padding: 0 18px; border-radius: 20px; background: var(--purple); color: #fff; font-size: 14px; font-weight: 600; }
+  .btn.sm { height: 32px; padding: 0 14px; font-size: 12px; }
+  .btn.gray { background: var(--bg); color: #3D3860; }
+  .btn.danger { background: #FDE7E7; color: var(--red); }
+  .btn.outline-danger { background: #fff; color: var(--red); border: 1.5px solid #F0B9B9; }
+  .btn.ghost { background: #fff; color: var(--ink); font-weight: 500; box-shadow: 0 2px 10px rgba(60, 40, 140, .08); }
+  input, select, textarea { font-family: inherit; font-size: 14px; color: var(--ink); background: var(--bg);
+    border: 1.5px solid transparent; border-radius: 16px; padding: 12px 14px; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--purple); }
+  textarea { width: 100%; min-height: 76px; resize: vertical; }
+  .field { width: 100%; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
-  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #F0F0F0; font-size: 14px; vertical-align: top; }
-  th { background: #7C3AED; color: white; }
-  .empty { text-align: center; color: #999; padding: 16px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
-  .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-  .card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
-  .card .value { font-size: 26px; font-weight: bold; }
-  .card .sub { font-size: 12px; color: #999; margin-top: 4px; }
-  .card.income .value { color: #22C55E; } .card.expense .value { color: #EF4444; }
-  .swatch { display: inline-block; width: 16px; height: 16px; border-radius: 4px; vertical-align: middle; margin-right: 6px; }
-  .badge { padding: 2px 10px; border-radius: 10px; font-size: 12px; }
-  .badge.open { background: #FEF3C7; color: #B45309; } .badge.resolved, .badge.active { background: #DCFCE7; color: #15803D; }
+  .grow { flex: 1; min-width: 0; }
+
+  /* ---------- ล็อกอิน ---------- */
+  #login { min-height: 100vh; position: relative; padding: 0 20px; }
+  .login-hero { position: absolute; left: 0; right: 0; top: 0; height: 360px; background: var(--purple); border-radius: 0 0 44px 44px; }
+  .login-wrap { position: relative; max-width: 420px; margin: 0 auto; padding-top: 64px; }
+  .login-brand { text-align: center; color: #fff; }
+  .login-logo { width: 68px; height: 68px; border-radius: 22px; background: rgba(255,255,255,.18); display: inline-flex; align-items: center; justify-content: center; }
+  .login-brand h1 { margin-top: 12px; font-size: 28px; }
+  .login-brand p { margin: 2px 0 0; font-size: 14px; opacity: .85; }
+  .login-card { margin-top: 28px; background: #fff; border-radius: 28px; padding: 24px 22px 22px; box-shadow: 0 18px 40px rgba(60,40,140,.16); }
+  .login-card h2 { margin: 0 0 14px; font-size: 20px; }
+  .login-card input { width: 100%; margin-bottom: 12px; height: 54px; border-radius: 18px; }
+  .login-card .btn { width: 100%; height: 54px; border-radius: 27px; font-size: 16px; box-shadow: 0 10px 20px rgba(91,47,214,.32); }
+
+  /* ---------- โครงหน้า ---------- */
+  #app { display: flex; min-height: 100vh; }
+  .sidebar { width: 248px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--line); padding: 24px 16px;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+  .brand-logo { width: 38px; height: 38px; border-radius: 12px; background: var(--purple); display: flex; align-items: center; justify-content: center; }
+  .brand b { font-size: 17px; display: block; line-height: 1.2; }
+  .brand small { font-size: 11px; color: var(--muted); }
+  .side-nav { margin-top: 28px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-item { height: 46px; border-radius: 14px; display: flex; align-items: center; gap: 12px; padding: 0 14px; font-size: 14px; color: #4B4766; text-decoration: none; }
+  .nav-item svg { stroke: var(--muted); }
+  .nav-item:hover { background: var(--bg); }
+  .nav-item.active { background: var(--purple-l); color: var(--purple); font-weight: 600; }
+  .nav-item.active svg { stroke: var(--purple); }
+  .nav-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #FEF3C7; color: var(--amber); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .me { margin-top: auto; padding: 12px; border-radius: 16px; background: var(--bg); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #E4DBFB; color: var(--purple); display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+  .me .info { flex: 1; min-width: 0; }
+  .me .info b { font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .me .info small { font-size: 11px; color: var(--muted); }
+  .icon-btn { width: 34px; height: 34px; border-radius: 50%; background: transparent; display: flex; align-items: center; justify-content: center; }
+  .icon-btn:hover { background: #FDE7E7; }
+
+  .main { flex: 1; min-width: 0; padding: 28px 36px 40px; }
+  .mobilebar { display: none; align-items: center; gap: 10px; height: 44px; margin-bottom: 10px; }
+  .mobilebar .brand-logo { width: 36px; height: 36px; }
+  .mobilebar .title { flex: 1; font-size: 18px; font-weight: 700; }
+  .mobilebar .icon-btn { width: 40px; height: 40px; background: #fff; }
+  .bottomnav { display: none; position: fixed; left: 16px; right: 16px; bottom: 16px; height: 64px; border-radius: 32px; background: #fff;
+    box-shadow: 0 10px 30px rgba(60,40,140,.16); align-items: center; justify-content: space-around; padding: 0 8px; z-index: 20; }
+  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); text-decoration: none; padding: 8px 16px; border-radius: 24px; }
+  .bn-item svg { stroke: var(--muted); width: 22px; height: 22px; }
+  .bn-item.active { background: var(--purple-l); color: var(--purple); font-weight: 600; }
+  .bn-item.active svg { stroke: var(--purple); }
+
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .page-head p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+  #flash { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; padding: 12px 20px; border-radius: 16px; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.15); max-width: calc(100vw - 32px); }
+  #flash.success { background: #F0FDF4; color: #16A34A; }
+  #flash.error { background: #FEF2F2; color: #DC2626; }
+  .loading { color: var(--muted); padding: 40px 0; text-align: center; }
+
+  /* ---------- การ์ด ---------- */
+  .card { background: #fff; border-radius: 22px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(60,40,140,.05); }
+  .empty { text-align: center; color: var(--muted); padding: 32px 16px; }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 24px; background: #E9E5F8; max-width: 380px; margin-bottom: 16px; }
+  .seg a { flex: 1; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); text-decoration: none; }
+  .seg a.active { background: var(--purple); color: #fff; font-weight: 600; box-shadow: 0 4px 10px rgba(91,47,214,.3); }
+  .badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge.open { background: #FEF3C7; color: var(--amber); }
+  .badge.resolved, .badge.active { background: #DCFCE7; color: var(--green); }
   .badge.blocked { background: #FEE2E2; color: #B91C1C; }
-  #login { max-width: 340px; margin: 12vh auto; }
-  #login input { width: 100%; margin-bottom: 14px; }
-  #login h2 { text-align: center; margin-bottom: 24px; }
-  textarea { width: 100%; min-height: 60px; }
-  .desc { white-space: pre-wrap; }
+  .badge.admin { background: var(--purple-l); color: var(--purple); height: 20px; font-size: 11px; }
+
+  /* ---------- สถิติ ---------- */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .stat { background: #fff; border-radius: 22px; padding: 18px 20px; }
+  .stat .l { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 30px; font-weight: 700; margin-top: 2px; }
+  .stat .s { font-size: 12px; color: var(--muted); }
+  .stat.hero { background: var(--purple); color: #fff; box-shadow: 0 12px 26px rgba(91,47,214,.25); }
+  .stat.hero .l, .stat.hero .s { color: rgba(255,255,255,.85); }
+  .stat.sm .v { font-size: 26px; }
+  .stat .v.income { color: var(--green); } .stat .v.expense { color: var(--red); }
+  .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+  .bar-row { display: flex; align-items: center; gap: 12px; font-size: 13px; margin-top: 12px; }
+  .bar-row .n { width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { flex: 1; height: 8px; border-radius: 4px; background: #EEEAFB; }
+  .bar i { display: block; height: 8px; border-radius: 4px; background: var(--purple); }
+  .bar-row .c { width: 60px; text-align: right; font-weight: 600; }
+
+  /* ---------- คำร้อง ---------- */
+  .issues { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  .issue .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .issue .top b { font-size: 15px; }
+  .issue .meta { font-size: 12px; color: var(--muted); margin: 2px 0 10px; }
+  .issue .desc { white-space: pre-wrap; font-size: 14px; line-height: 1.5; }
+  .issue .reply { margin-top: 12px; }
+  .issue .reply .btn { margin-top: 10px; width: 100%; }
+
+  /* ---------- หมวดหมู่ ---------- */
+  .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .cat .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .swatch { width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0; }
+  .cat .edit { display: flex; flex-direction: column; gap: 8px; }
+  .cat .edit input[type=color] { width: 44px; height: 44px; padding: 4px; }
+  .add-cat { display: grid; grid-template-columns: 1fr 140px 1fr 56px auto; gap: 10px; align-items: center; }
+
+  /* ---------- ผู้ใช้ ---------- */
+  .search { display: flex; gap: 10px; }
+  .search input { flex: 1; min-width: 0; background: #fff; box-shadow: 0 2px 10px rgba(60,40,140,.06); border-radius: 22px; height: 44px; }
+  table.tbl { width: 100%; border-collapse: collapse; background: #fff; border-radius: 24px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,40,140,.05); }
+  .tbl th { background: #F9F8FE; color: var(--muted); font-size: 12px; font-weight: 600; text-align: left; padding: 14px 20px; }
+  .tbl td { padding: 14px 20px; font-size: 14px; border-top: 1px solid #F0EEF8; vertical-align: middle; }
+  .who { display: flex; align-items: center; gap: 10px; }
+  .who .avatar { width: 36px; height: 36px; }
+  .ucard .row1 { display: flex; align-items: center; gap: 12px; }
+  .ucard .avatar { width: 46px; height: 46px; font-size: 18px; }
+  .ucard .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .ucard .chips span { background: var(--bg); border-radius: 12px; padding: 6px 12px; }
+  .ucard .acts { margin-top: 12px; display: flex; gap: 8px; }
+  .ucard .acts .btn { flex: 1; height: 40px; }
+  .only-mob { display: none; }
+  .ucards { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ---------- จอแคบ (มือถือ/แท็บเล็ตแนวตั้ง) ---------- */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { padding: 16px 16px 100px; }
+    .mobilebar, .bottomnav { display: flex; }
+    h1 { font-size: 22px; }
+    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat { padding: 14px 16px; border-radius: 20px; }
+    .stat.hero { grid-column: span 2; }
+    .stat .v, .stat.sm .v { font-size: 22px; }
+    .stat.hero .v { font-size: 32px; }
+    .panels, .issues { grid-template-columns: 1fr; }
+    .add-cat { grid-template-columns: 1fr 1fr; }
+    .add-cat .btn { grid-column: span 2; }
+    .only-desk { display: none; }
+    .only-mob { display: block; }
+    .page-head { margin-bottom: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -56,28 +186,50 @@
   const SUPABASE_KEY = 'sb_publishable_B9AagWAO1A1sbK0AJZS4Bw_0K9vcieX';   // ห้ามใช้ secret / service_role key
 </script>
 
-<div id="login" class="box hidden">
-  <h2>FlowFin Admin</h2>
-  <div id="loginError" class="msg error hidden"></div>
-  <input id="email" type="email" placeholder="อีเมลผู้ดูแลระบบ">
-  <input id="password" type="password" placeholder="รหัสผ่าน">
-  <button style="width:100%" onclick="doLogin()">เข้าสู่ระบบ</button>
+<div id="login" class="hidden">
+  <div class="login-hero"></div>
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="login-logo"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+      <h1>FlowFin Admin</h1>
+      <p>สำหรับผู้ดูแลระบบเท่านั้น</p>
+    </div>
+    <div class="login-card">
+      <h2>เข้าสู่ระบบ</h2>
+      <div id="loginError" class="hidden" style="background:#FEF2F2;color:#DC2626;border-radius:14px;padding:10px 14px;font-size:14px;margin-bottom:12px"></div>
+      <input id="email" type="email" placeholder="อีเมลผู้ดูแลระบบ" autocomplete="username">
+      <input id="password" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    </div>
+  </div>
 </div>
 
 <div id="app" class="hidden">
-  <div class="topbar">
-    <div class="nav">
-      <a data-tab="issues" onclick="show('issues')">จัดการคำร้อง/ปัญหา</a>
-      <a data-tab="stats" onclick="show('stats')">สถิติการใช้งาน</a>
-      <a data-tab="categories" onclick="show('categories')">หมวดหมู่มาตรฐาน</a>
-      <a data-tab="users" onclick="show('users')">บัญชีผู้ใช้</a>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+      <div><b>FlowFin</b><small>Admin</small></div>
     </div>
-    <div><span id="who" style="font-size:13px;color:#888;margin-right:12px"></span>
-      <button class="small danger" onclick="doLogout()">ออกจากระบบ</button></div>
-  </div>
-  <div id="flash" class="msg hidden"></div>
-  <div id="content"></div>
+    <nav class="side-nav" id="sideNav"></nav>
+    <div class="me">
+      <div class="avatar" id="meAvatar">A</div>
+      <div class="info"><b id="meName">admin</b><small>ผู้ดูแลระบบ</small></div>
+      <button class="icon-btn" onclick="doLogout()" aria-label="ออกจากระบบ" title="ออกจากระบบ"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C62828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="mobilebar">
+      <div class="brand-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+      <div class="title" id="mobileTitle">FlowFin Admin</div>
+      <button class="icon-btn" onclick="doLogout()" aria-label="ออกจากระบบ"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C62828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+    </div>
+    <div id="content"></div>
+  </main>
+
+  <nav class="bottomnav" id="bottomNav"></nav>
 </div>
+<div id="flash" class="hidden"></div>
 
 <script>
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -86,20 +238,51 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
 const num = (n) => Number(n || 0).toLocaleString('en-US');
 const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 // เวลาในฐานข้อมูลเก็บเป็นเวลาไทยอยู่แล้ว (timestamp ไม่มีโซนเวลา) จึงแสดงตามที่เก็บ ไม่แปลงโซน
-const fmtDate = (s) => s ? String(s).replace('T', ' ').slice(0, 19) : '';
+const fmtDate = (s) => s ? String(s).replace('T', ' ').slice(0, 16) : '';
+// ใช้สีที่เป็นรูปแบบ #RRGGBB เท่านั้น กันข้อความแปลกปลอมหลุดเข้า style
+const safeColor = (c, fb = '#CCCCCC') => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : fb;
+const initial = (s) => (String(s || '?').trim().charAt(0) || '?').toUpperCase();
+
 let currentTab = 'issues';
+let issueTab = 'open';
+let usersSearch = '';
 // เก็บข้อมูลที่โหลดมาไว้ เพื่อให้ปุ่มส่งแค่ id ไม่ต้องยัดข้อความจากผู้ใช้ลงใน onclick (กัน XSS)
 let catsCache = [];
 let usersCache = [];
+let issuesCache = [];
 
+const ICON = {
+  chat: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>',
+  chart: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',
+  grid: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>',
+  users: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 1 0 0-6M22 21c0-3-2-5-5-5"/></svg>'
+};
+const NAV = [
+  { id: 'issues', label: 'คำร้อง/ปัญหา', short: 'คำร้อง', icon: ICON.chat },
+  { id: 'stats', label: 'สถิติการใช้งาน', short: 'สถิติ', icon: ICON.chart },
+  { id: 'categories', label: 'หมวดหมู่มาตรฐาน', short: 'หมวดหมู่', icon: ICON.grid },
+  { id: 'users', label: 'บัญชีผู้ใช้', short: 'ผู้ใช้', icon: ICON.users }
+];
+function buildNav() {
+  $('sideNav').innerHTML = NAV.map(n => `<a class="nav-item" data-tab="${n.id}" onclick="show('${n.id}')">${n.icon}<span style="flex:1">${n.label}</span>${n.id === 'issues' ? '<span id="issueBadge" class="nav-badge hidden">0</span>' : ''}</a>`).join('');
+  $('bottomNav').innerHTML = NAV.map(n => `<a class="bn-item" data-tab="${n.id}" onclick="show('${n.id}')">${n.icon}<span>${n.short}</span></a>`).join('');
+}
+async function refreshBadge() {
+  const { data } = await db.rpc('admin_stats');
+  const b = $('issueBadge');
+  if (b && data) { b.textContent = data.open_issues; b.classList.toggle('hidden', !data.open_issues); }
+}
+
+let flashTimer;
 function flash(text, ok = true) {
-  const f = $('flash'); f.textContent = text; f.className = 'msg ' + (ok ? 'success' : 'error');
-  setTimeout(() => f.classList.add('hidden'), 4000);
+  const f = $('flash'); f.textContent = text; f.className = ok ? 'success' : 'error';
+  clearTimeout(flashTimer); flashTimer = setTimeout(() => f.classList.add('hidden'), 4000);
 }
 const fail = (e) => flash(e.message || String(e), false);
 
 // ---------- auth ----------
 async function boot() {
+  buildNav();
   const { data } = await db.auth.getSession();
   if (data.session && await checkAdmin()) return enterApp();
   $('login').classList.remove('hidden');
@@ -121,90 +304,103 @@ async function doLogin() {
 async function doLogout() { await db.auth.signOut(); location.reload(); }
 async function enterApp() {
   const { data } = await db.auth.getUser();
-  $('who').textContent = data.user?.email || '';
+  const email = data.user?.email || '';
+  $('meName').textContent = email.split('@')[0] || 'admin';
+  $('meAvatar').textContent = initial(email);
   $('login').classList.add('hidden'); $('app').classList.remove('hidden');
   show('issues');
+  refreshBadge().catch(() => {});
 }
 
 // ---------- tabs ----------
 function show(tab) {
   currentTab = tab;
-  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
-  $('content').innerHTML = '<p style="color:#999">กำลังโหลด...</p>';
+  document.querySelectorAll('[data-tab]').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+  $('content').innerHTML = '<div class="loading">กำลังโหลด...</div>';
+  window.scrollTo(0, 0);
   ({ issues: renderIssues, stats: renderStats, categories: renderCategories, users: renderUsers })[tab]().catch(fail);
 }
+const head = (title, sub, right = '') => `<div class="page-head"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div>${right}</div>`;
 
 // ---------- issues ----------
 async function renderIssues() {
   const { data, error } = await db.rpc('admin_issues'); if (error) throw error;
-  $('content').innerHTML = `<h2>คำร้อง/ปัญหาจากผู้ใช้</h2><br>` + (data.length === 0
-    ? '<div class="box empty">ยังไม่มีคำร้อง</div>'
-    : data.map(i => `<div class="box">
-        <div class="row" style="justify-content:space-between">
-          <b>${esc(i.title)}</b><span class="badge ${esc(i.status)}">${i.status === 'resolved' ? 'ตอบแล้ว' : 'รอตอบ'}</span></div>
-        <div style="font-size:12px;color:#888;margin:4px 0 10px">${esc(i.user_name)} (${esc(i.user_email)}) · ${esc(fmtDate(i.date_reported))}</div>
-        <div class="desc">${esc(i.description)}</div>
-        <div style="margin-top:12px"><textarea id="reply-${i.issue_id}" placeholder="พิมพ์คำตอบ...">${esc(i.reply || '')}</textarea>
-        <button class="small" style="margin-top:6px" onclick="replyIssue(${Number(i.issue_id)})">${i.reply ? 'แก้ไขคำตอบ' : 'ส่งคำตอบ'}</button></div>
-      </div>`).join(''));
+  issuesCache = data;
+  const open = data.filter(i => i.status !== 'resolved');
+  const done = data.filter(i => i.status === 'resolved');
+  const list = issueTab === 'open' ? open : done;
+  $('content').innerHTML = head('คำร้อง/ปัญหาจากผู้ใช้', `ทั้งหมด ${num(data.length)} รายการ`) +
+    `<div class="seg"><a class="${issueTab === 'open' ? 'active' : ''}" onclick="setIssueTab('open')">รอตอบ ${open.length}</a>
+      <a class="${issueTab === 'resolved' ? 'active' : ''}" onclick="setIssueTab('resolved')">ตอบแล้ว ${done.length}</a></div>` +
+    (list.length === 0 ? `<div class="card empty">${issueTab === 'open' ? 'ไม่มีคำร้องที่รอตอบ' : 'ยังไม่มีคำร้องที่ตอบแล้ว'}</div>`
+      : `<div class="issues">` + list.map(i => `<div class="card issue">
+          <div class="top"><b>${esc(i.title)}</b><span class="badge ${esc(i.status)}">${i.status === 'resolved' ? 'ตอบแล้ว' : 'รอตอบ'}</span></div>
+          <div class="meta">${esc(i.user_name)} · ${esc(i.user_email)} · ${esc(fmtDate(i.date_reported))}</div>
+          <div class="desc">${esc(i.description)}</div>
+          <div class="reply"><textarea id="reply-${Number(i.issue_id)}" placeholder="พิมพ์คำตอบ...">${esc(i.reply || '')}</textarea>
+            <button class="btn sm" onclick="replyIssue(${Number(i.issue_id)})">${i.reply ? 'แก้ไขคำตอบ' : 'ส่งคำตอบ'}</button></div>
+        </div>`).join('') + `</div>`);
 }
+function setIssueTab(t) { issueTab = t; show('issues'); }
 async function replyIssue(id) {
   const reply = $('reply-' + id).value.trim();
   if (!reply) return flash('กรุณาพิมพ์คำตอบ', false);
   const { error } = await db.rpc('admin_reply_issue', { p_issue_id: id, p_reply: reply });
   if (error) return fail(error);
-  flash('บันทึกคำตอบแล้ว'); show('issues');
+  flash('บันทึกคำตอบแล้ว'); show('issues'); refreshBadge().catch(() => {});
 }
 
 // ---------- stats ----------
 async function renderStats() {
   const { data: s, error } = await db.rpc('admin_stats'); if (error) throw error;
-  const rows = (arr, f) => arr.length ? arr.map(f).join('') : '<tr><td colspan="2" class="empty">ยังไม่มีข้อมูล</td></tr>';
-  $('content').innerHTML = `<h2>สถิติการใช้งานระบบ FlowFin</h2>
-  <div class="cards">
-    <div class="card"><div class="label">จำนวนผู้ใช้งานทั้งหมด</div><div class="value">${num(s.total_users)}</div><div class="sub">สมัครใหม่เดือนนี้ +${num(s.new_users_this_month)} คน</div></div>
-    <div class="card"><div class="label">รายการรายรับ-รายจ่ายทั้งหมด</div><div class="value">${num(s.total_transactions)}</div><div class="sub">รวมทุกผู้ใช้งาน</div></div>
-    <div class="card income"><div class="label">ยอดรายรับรวมทั้งระบบ</div><div class="value">${money(s.total_income)} ฿</div></div>
-    <div class="card expense"><div class="label">ยอดรายจ่ายรวมทั้งระบบ</div><div class="value">${money(s.total_expense)} ฿</div></div>
-    <div class="card"><div class="label">วงเงินที่ผู้ใช้ตั้งไว้</div><div class="value">${num(s.total_budgets)}</div></div>
-    <div class="card"><div class="label">เป้าหมายการออม</div><div class="value">${num(s.total_goals)}</div><div class="sub">สำเร็จแล้ว ${num(s.completed_goals)} เป้าหมาย</div></div>
-    <div class="card"><div class="label">คำร้อง/ปัญหา</div><div class="value">${num(s.open_issues)} รอตอบ</div><div class="sub">ตอบแล้ว ${num(s.resolved_issues)} รายการ</div></div>
-    <div class="card"><div class="label">สลิปที่อัปโหลด (OCR)</div><div class="value">${num(s.total_slips)}</div></div>
+  const bars = (arr, name, cnt, unit, color) => {
+    const max = Math.max(1, ...arr.map(r => Number(r[cnt]) || 0));
+    return arr.length ? arr.map(r => `<div class="bar-row"><span class="n">${esc(r[name])}</span><div class="bar"><i style="width:${(Number(r[cnt]) || 0) / max * 100}%;background:${color}"></i></div><span class="c">${num(r[cnt])} ${unit}</span></div>`).join('')
+      : '<div class="empty">ยังไม่มีข้อมูล</div>';
+  };
+  $('content').innerHTML = head('สถิติการใช้งานระบบ', 'ภาพรวมทั้งระบบ',
+      '<button class="btn ghost" onclick="show(\'stats\')">รีเฟรชข้อมูล</button>') +
+  `<div class="stat-grid">
+    <div class="stat hero"><div class="l">ผู้ใช้งานทั้งหมด</div><div class="v">${num(s.total_users)}</div><div class="s">สมัครใหม่เดือนนี้ +${num(s.new_users_this_month)} คน</div></div>
+    <div class="stat"><div class="l">รายการทั้งหมด</div><div class="v">${num(s.total_transactions)}</div><div class="s">รวมทุกผู้ใช้</div></div>
+    <div class="stat"><div class="l">รายรับรวม</div><div class="v income">${num(s.total_income)}</div><div class="s">บาท</div></div>
+    <div class="stat"><div class="l">รายจ่ายรวม</div><div class="v expense">${num(s.total_expense)}</div><div class="s">บาท</div></div>
+    <div class="stat sm"><div class="l">วงเงินที่ตั้ง</div><div class="v">${num(s.total_budgets)}</div></div>
+    <div class="stat sm"><div class="l">เป้าหมายการออม</div><div class="v">${num(s.total_goals)}</div><div class="s">สำเร็จ ${num(s.completed_goals)}</div></div>
+    <div class="stat sm"><div class="l">คำร้อง</div><div class="v">${num(s.open_issues)} <span style="font-size:13px;font-weight:500;color:var(--amber)">รอตอบ</span></div><div class="s">ตอบแล้ว ${num(s.resolved_issues)}</div></div>
+    <div class="stat sm"><div class="l">สลิปที่อัปโหลด</div><div class="v">${num(s.total_slips)}</div></div>
   </div>
-  <h3>สมัครสมาชิกใหม่ย้อนหลัง 6 เดือน</h3>
-  <table><tr><th>เดือน</th><th>จำนวนผู้สมัครใหม่</th></tr>${rows(s.monthly_signups, r => `<tr><td>${esc(r.ym)}</td><td>${num(r.cnt)} คน</td></tr>`)}</table>
-  <h3>หมวดหมู่ที่ถูกใช้บันทึกรายการมากที่สุด</h3>
-  <table><tr><th>หมวดหมู่</th><th>จำนวนครั้งที่ถูกใช้</th></tr>${rows(s.top_categories, r => `<tr><td>${esc(r.category_name)}</td><td>${num(r.usage_count)} ครั้ง</td></tr>`)}</table>`;
+  <div class="panels">
+    <div class="card"><h3>สมัครสมาชิกใหม่ย้อนหลัง 6 เดือน</h3>${bars(s.monthly_signups, 'ym', 'cnt', 'คน', 'var(--purple)')}</div>
+    <div class="card"><h3>หมวดหมู่ที่ถูกใช้มากที่สุด</h3>${bars(s.top_categories, 'category_name', 'usage_count', 'ครั้ง', '#7C3AED')}</div>
+  </div>`;
 }
 
 // ---------- categories (หมวดหมู่มาตรฐาน user_id = null) ----------
+let catType = 'รายจ่าย';
 async function renderCategories() {
   const { data, error } = await db.from('categories').select().is('user_id', null).order('type').order('category_id');
   if (error) throw error;
   catsCache = data;
-  const table = (type) => {
-    const list = data.filter(c => c.type === type);
-    return `<h3>หมวดหมู่${type}</h3><table><tr><th>สี</th><th>ชื่อ</th><th>ไอคอน</th><th style="width:300px">จัดการ</th></tr>` +
-      (list.length ? list.map(c => `<tr>
-        <td><span class="swatch" style="background:${esc(c.icon_color || '#ccc')}"></span></td>
-        <td>${esc(c.category_name)}</td><td>${esc(c.icon || '-')}</td>
-        <td><div class="row">
-          <input id="n-${c.category_id}" value="${esc(c.category_name)}" style="width:110px">
-          <input id="i-${c.category_id}" value="${esc(c.icon || '')}" style="width:100px">
-          <input id="c-${c.category_id}" type="color" value="${/^#[0-9a-fA-F]{6}$/.test(c.icon_color || '') ? c.icon_color : '#7C3AED'}">
-          <button class="small gray" onclick="editCat(${Number(c.category_id)})">บันทึก</button>
-          <button class="small danger" onclick="delCat(${Number(c.category_id)})">ลบ</button>
-        </div></td></tr>`).join('') : '<tr><td colspan="4" class="empty">ยังไม่มีหมวดหมู่มาตรฐาน</td></tr>') + '</table>';
-  };
-  $('content').innerHTML = `<h2>จัดการหมวดหมู่มาตรฐานของระบบ</h2>
-  <p style="color:#888;font-size:13px">หมวดหมู่เหล่านี้จะแสดงให้ผู้ใช้งานทุกคนเห็นในแอป แยกจากหมวดหมู่ที่ผู้ใช้สร้างเอง</p>
-  <div class="box"><h3 style="margin-top:0">เพิ่มหมวดหมู่มาตรฐานใหม่</h3><div class="row">
-    <input id="newName" placeholder="ชื่อหมวดหมู่" style="flex:1;min-width:140px">
-    <select id="newType"><option>รายจ่าย</option><option>รายรับ</option></select>
-    <input id="newIcon" placeholder="ไอคอน (เช่น home, restaurant)" style="width:200px">
-    <input id="newColor" type="color" value="#7C3AED">
-    <button onclick="addCat()">เพิ่มหมวดหมู่</button></div></div>` + table('รายจ่าย') + table('รายรับ');
+  const list = data.filter(c => c.type === catType);
+  $('content').innerHTML = head('จัดการหมวดหมู่มาตรฐานของระบบ', 'หมวดหมู่เหล่านี้แสดงให้ผู้ใช้ทุกคนเห็นในแอป แยกจากหมวดหมู่ที่ผู้ใช้สร้างเอง') +
+  `<div class="card" style="margin-bottom:16px"><h3>เพิ่มหมวดหมู่มาตรฐานใหม่</h3><div class="add-cat">
+      <input id="newName" placeholder="ชื่อหมวดหมู่">
+      <select id="newType"><option>รายจ่าย</option><option>รายรับ</option></select>
+      <input id="newIcon" placeholder="ไอคอน เช่น home, restaurant">
+      <input id="newColor" type="color" value="#7C3AED" style="height:44px;padding:4px">
+      <button class="btn" onclick="addCat()">เพิ่มหมวดหมู่</button></div></div>
+    <div class="seg"><a class="${catType === 'รายจ่าย' ? 'active' : ''}" onclick="setCatType('รายจ่าย')">รายจ่าย</a><a class="${catType === 'รายรับ' ? 'active' : ''}" onclick="setCatType('รายรับ')">รายรับ</a></div>` +
+  (list.length ? `<div class="cats">` + list.map(c => { const id = Number(c.category_id); return `<div class="card cat">
+      <div class="head"><span class="swatch" style="background:${safeColor(c.icon_color)}"></span><b>${esc(c.category_name)}</b></div>
+      <div class="edit">
+        <input id="n-${id}" value="${esc(c.category_name)}" placeholder="ชื่อ">
+        <div class="row"><input id="i-${id}" value="${esc(c.icon || '')}" placeholder="ไอคอน" class="grow">
+          <input id="c-${id}" type="color" value="${safeColor(c.icon_color, '#7C3AED')}"></div>
+        <div class="row"><button class="btn sm grow" onclick="editCat(${id})">บันทึก</button><button class="btn sm danger" onclick="delCat(${id})">ลบ</button></div>
+      </div></div>`; }).join('') + `</div>` : '<div class="card empty">ยังไม่มีหมวดหมู่มาตรฐาน</div>');
 }
+function setCatType(t) { catType = t; show('categories'); }
 async function addCat() {
   const name = $('newName').value.trim(); if (!name) return flash('กรุณากรอกชื่อหมวดหมู่', false);
   const { error } = await db.from('categories').insert({ user_id: null, category_name: name, type: $('newType').value,
@@ -225,23 +421,29 @@ async function delCat(id) {
 }
 
 // ---------- users ----------
-async function renderUsers(search = '') {
-  const { data, error } = await db.rpc('admin_users', { p_search: search }); if (error) throw error;
+async function renderUsers() {
+  const { data, error } = await db.rpc('admin_users', { p_search: usersSearch }); if (error) throw error;
   usersCache = data;
-  $('content').innerHTML = `<h2>จัดการบัญชีผู้ใช้</h2><br>
-  <div class="box"><div class="row"><input id="q" placeholder="ค้นหาชื่อหรืออีเมล" value="${esc(search)}" style="flex:1;min-width:200px"
-    onkeydown="if(event.key==='Enter')renderUsers(this.value).catch(fail)">
-    <button onclick="renderUsers($('q').value).catch(fail)">ค้นหา</button></div></div>
-  <table><tr><th>ชื่อ</th><th>อีเมล</th><th>สมัครเมื่อ</th><th>รายการ</th><th>คำร้อง</th><th>สถานะ</th><th>จัดการ</th></tr>` +
-  (data.length ? data.map(u => `<tr>
-    <td>${esc(u.name)}${u.is_admin ? ' <span class="badge active">admin</span>' : ''}</td><td>${esc(u.email)}</td><td>${esc(fmtDate(u.created_at))}</td>
-    <td>${num(u.transaction_count)}</td><td>${num(u.issue_count)}</td>
-    <td><span class="badge ${esc(u.status)}">${u.status === 'blocked' ? 'ถูกบล็อก' : 'ปกติ'}</span></td>
-    <td><div class="row">
-      <button class="small gray" onclick="setStatus(${Number(u.user_id)}, '${u.status === 'blocked' ? 'active' : 'blocked'}')">${u.status === 'blocked' ? 'ปลดบล็อก' : 'บล็อก'}</button>
-      <button class="small danger" onclick="delUser(${Number(u.user_id)})">ลบ</button>
-    </div></td></tr>`).join('') : '<tr><td colspan="7" class="empty">ไม่พบผู้ใช้</td></tr>') + '</table>';
+  const statusBadge = (u) => `<span class="badge ${esc(u.status)}">${u.status === 'blocked' ? 'ถูกบล็อก' : 'ปกติ'}</span>`;
+  const adminTag = (u) => u.is_admin ? ' <span class="badge admin">admin</span>' : '';
+  const acts = (u) => u.is_admin ? '<span style="font-size:12px;color:var(--muted)">แอดมิน</span>' :
+    `<button class="btn sm gray" onclick="setStatus(${Number(u.user_id)}, '${u.status === 'blocked' ? 'active' : 'blocked'}')">${u.status === 'blocked' ? 'ปลดบล็อก' : 'บล็อก'}</button>
+     <button class="btn sm danger" onclick="delUser(${Number(u.user_id)})">ลบ</button>`;
+  $('content').innerHTML = head('จัดการบัญชีผู้ใช้', `ทั้งหมด ${num(data.length)} บัญชี`) +
+  `<div class="search" style="margin-bottom:16px"><input id="q" placeholder="ค้นหาชื่อหรืออีเมล" value="${esc(usersSearch)}"
+      onkeydown="if(event.key==='Enter')doSearch()"><button class="btn" onclick="doSearch()">ค้นหา</button></div>` +
+  (data.length === 0 ? '<div class="card empty">ไม่พบผู้ใช้</div>' :
+  `<div class="only-desk"><table class="tbl"><thead><tr><th>ผู้ใช้</th><th>อีเมล</th><th>สมัครเมื่อ</th><th>รายการ</th><th>คำร้อง</th><th>สถานะ</th><th style="text-align:right">จัดการ</th></tr></thead><tbody>` +
+    data.map(u => `<tr><td><div class="who"><span class="avatar">${esc(initial(u.name))}</span><span><b>${esc(u.name)}</b>${adminTag(u)}</span></div></td>
+      <td>${esc(u.email)}</td><td style="color:var(--muted)">${esc(fmtDate(u.created_at).slice(0, 10))}</td>
+      <td>${num(u.transaction_count)}</td><td>${num(u.issue_count)}</td><td>${statusBadge(u)}</td>
+      <td style="text-align:right"><div class="row" style="justify-content:flex-end">${acts(u)}</div></td></tr>`).join('') + `</tbody></table></div>
+  <div class="only-mob"><div class="ucards">` + data.map(u => `<div class="card ucard">
+      <div class="row1"><span class="avatar">${esc(initial(u.name))}</span><div class="grow"><b>${esc(u.name)}</b>${adminTag(u)}<div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis">${esc(u.email)}</div></div>${statusBadge(u)}</div>
+      <div class="chips"><span>รายการ <b style="color:var(--ink)">${num(u.transaction_count)}</b></span><span>คำร้อง <b style="color:var(--ink)">${num(u.issue_count)}</b></span><span>${esc(fmtDate(u.created_at).slice(0, 10))}</span></div>
+      ${u.is_admin ? '' : `<div class="acts">${acts(u)}</div>`}</div>`).join('') + `</div></div>`);
 }
+function doSearch() { usersSearch = $('q').value.trim(); show('users'); }
 async function setStatus(id, status) {
   const { error } = await db.rpc('admin_set_user_status', { p_user_id: id, p_status: status });
   if (error) return fail(error); flash(status === 'blocked' ? 'บล็อกผู้ใช้แล้ว' : 'ปลดบล็อกผู้ใช้แล้ว'); show('users');
