@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowFin Admin</title>
+<!-- ล็อกเวอร์ชันและตรวจ hash (SRI) กันไฟล์ถูกแก้ระหว่างทาง ถ้าจะอัปเดตเวอร์ชัน ต้องคำนวณ hash ใหม่ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"
+        integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok"
+        crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #F7F7FB; margin: 0; padding: 24px; color: #333; }
+  h2 { color: #7C3AED; margin: 0 0 4px; }
+  h3 { font-size: 16px; margin: 24px 0 10px; }
+  button { background: #7C3AED; color: white; border: none; padding: 9px 18px; border-radius: 18px; cursor: pointer; font-size: 14px; }
+  button.small { padding: 5px 12px; font-size: 12px; }
+  button.danger { background: #EF4444; }
+  button.gray { background: #64748B; }
+  input, select, textarea { padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: inherit; }
+  .hidden { display: none !important; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .nav a { color: #7C3AED; text-decoration: none; font-size: 14px; margin-right: 16px; cursor: pointer; padding-bottom: 4px; }
+  .nav a.active { border-bottom: 2px solid #7C3AED; font-weight: bold; }
+  .msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  .msg.success { background: #F0FDF4; color: #16A34A; }
+  .msg.error { background: #FEF2F2; color: #DC2626; }
+  .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #F0F0F0; font-size: 14px; vertical-align: top; }
+  th { background: #7C3AED; color: white; }
+  .empty { text-align: center; color: #999; padding: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .card .value { font-size: 26px; font-weight: bold; }
+  .card .sub { font-size: 12px; color: #999; margin-top: 4px; }
+  .card.income .value { color: #22C55E; } .card.expense .value { color: #EF4444; }
+  .swatch { display: inline-block; width: 16px; height: 16px; border-radius: 4px; vertical-align: middle; margin-right: 6px; }
+  .badge { padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+  .badge.open { background: #FEF3C7; color: #B45309; } .badge.resolved, .badge.active { background: #DCFCE7; color: #15803D; }
+  .badge.blocked { background: #FEE2E2; color: #B91C1C; }
+  #login { max-width: 340px; margin: 12vh auto; }
+  #login input { width: 100%; margin-bottom: 14px; }
+  #login h2 { text-align: center; margin-bottom: 24px; }
+  textarea { width: 100%; min-height: 60px; }
+  .desc { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<!-- ============ ตั้งค่า: ใส่ค่าจาก Supabase > Project Settings > API Keys ============ -->
+<script>
+  const SUPABASE_URL = 'https://kdpgkcbxqewaoxyqifta.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_B9AagWAO1A1sbK0AJZS4Bw_0K9vcieX';   // ห้ามใช้ secret / service_role key
+</script>
+
+<div id="login" class="box hidden">
+  <h2>FlowFin Admin</h2>
+  <div id="loginError" class="msg error hidden"></div>
+  <input id="email" type="email" placeholder="อีเมลผู้ดูแลระบบ">
+  <input id="password" type="password" placeholder="รหัสผ่าน">
+  <button style="width:100%" onclick="doLogin()">เข้าสู่ระบบ</button>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="nav">
+      <a data-tab="issues" onclick="show('issues')">จัดการคำร้อง/ปัญหา</a>
+      <a data-tab="stats" onclick="show('stats')">สถิติการใช้งาน</a>
+      <a data-tab="categories" onclick="show('categories')">หมวดหมู่มาตรฐาน</a>
+      <a data-tab="users" onclick="show('users')">บัญชีผู้ใช้</a>
+    </div>
+    <div><span id="who" style="font-size:13px;color:#888;margin-right:12px"></span>
+      <button class="small danger" onclick="doLogout()">ออกจากระบบ</button></div>
+  </div>
+  <div id="flash" class="msg hidden"></div>
+  <div id="content"></div>
+</div>
+
+<script>
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = (n) => Number(n || 0).toLocaleString('en-US');
+const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// เวลาในฐานข้อมูลเก็บเป็นเวลาไทยอยู่แล้ว (timestamp ไม่มีโซนเวลา) จึงแสดงตามที่เก็บ ไม่แปลงโซน
+const fmtDate = (s) => s ? String(s).replace('T', ' ').slice(0, 19) : '';
+let currentTab = 'issues';
+// เก็บข้อมูลที่โหลดมาไว้ เพื่อให้ปุ่มส่งแค่ id ไม่ต้องยัดข้อความจากผู้ใช้ลงใน onclick (กัน XSS)
+let catsCache = [];
+let usersCache = [];
+
+function flash(text, ok = true) {
+  const f = $('flash'); f.textContent = text; f.className = 'msg ' + (ok ? 'success' : 'error');
+  setTimeout(() => f.classList.add('hidden'), 4000);
+}
+const fail = (e) => flash(e.message || String(e), false);
+
+// ---------- auth ----------
+async function boot() {
+  const { data } = await db.auth.getSession();
+  if (data.session && await checkAdmin()) return enterApp();
+  $('login').classList.remove('hidden');
+}
+async function checkAdmin() {
+  const { data, error } = await db.rpc('is_admin');
+  return !error && data === true;
+}
+async function doLogin() {
+  const err = $('loginError'); err.classList.add('hidden');
+  const { error } = await db.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) { err.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'; err.classList.remove('hidden'); return; }
+  if (!(await checkAdmin())) {
+    await db.auth.signOut();
+    err.textContent = 'บัญชีนี้ไม่มีสิทธิ์ผู้ดูแลระบบ'; err.classList.remove('hidden'); return;
+  }
+  enterApp();
+}
+async function doLogout() { await db.auth.signOut(); location.reload(); }
+async function enterApp() {
+  const { data } = await db.auth.getUser();
+  $('who').textContent = data.user?.email || '';
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  show('issues');
+}
+
+// ---------- tabs ----------
+function show(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+  $('content').innerHTML = '<p style="color:#999">กำลังโหลด...</p>';
+  ({ issues: renderIssues, stats: renderStats, categories: renderCategories, users: renderUsers })[tab]().catch(fail);
+}
+
+// ---------- issues ----------
+async function renderIssues() {
+  const { data, error } = await db.rpc('admin_issues'); if (error) throw error;
+  $('content').innerHTML = `<h2>คำร้อง/ปัญหาจากผู้ใช้</h2><br>` + (data.length === 0
+    ? '<div class="box empty">ยังไม่มีคำร้อง</div>'
+    : data.map(i => `<div class="box">
+        <div class="row" style="justify-content:space-between">
+          <b>${esc(i.title)}</b><span class="badge ${esc(i.status)}">${i.status === 'resolved' ? 'ตอบแล้ว' : 'รอตอบ'}</span></div>
+        <div style="font-size:12px;color:#888;margin:4px 0 10px">${esc(i.user_name)} (${esc(i.user_email)}) · ${esc(fmtDate(i.date_reported))}</div>
+        <div class="desc">${esc(i.description)}</div>
+        <div style="margin-top:12px"><textarea id="reply-${i.issue_id}" placeholder="พิมพ์คำตอบ...">${esc(i.reply || '')}</textarea>
+        <button class="small" style="margin-top:6px" onclick="replyIssue(${Number(i.issue_id)})">${i.reply ? 'แก้ไขคำตอบ' : 'ส่งคำตอบ'}</button></div>
+      </div>`).join(''));
+}
+async function replyIssue(id) {
+  const reply = $('reply-' + id).value.trim();
+  if (!reply) return flash('กรุณาพิมพ์คำตอบ', false);
+  const { error } = await db.rpc('admin_reply_issue', { p_issue_id: id, p_reply: reply });
+  if (error) return fail(error);
+  flash('บันทึกคำตอบแล้ว'); show('issues');
+}
+
+// ---------- stats ----------
+async function renderStats() {
+  const { data: s, error } = await db.rpc('admin_stats'); if (error) throw error;
+  const rows = (arr, f) => arr.length ? arr.map(f).join('') : '<tr><td colspan="2" class="empty">ยังไม่มีข้อมูล</td></tr>';
+  $('content').innerHTML = `<h2>สถิติการใช้งานระบบ FlowFin</h2>
+  <div class="cards">
+    <div class="card"><div class="label">จำนวนผู้ใช้งานทั้งหมด</div><div class="value">${num(s.total_users)}</div><div class="sub">สมัครใหม่เดือนนี้ +${num(s.new_users_this_month)} คน</div></div>
+    <div class="card"><div class="label">รายการรายรับ-รายจ่ายทั้งหมด</div><div class="value">${num(s.total_transactions)}</div><div class="sub">รวมทุกผู้ใช้งาน</div></div>
+    <div class="card income"><div class="label">ยอดรายรับรวมทั้งระบบ</div><div class="value">${money(s.total_income)} ฿</div></div>
+    <div class="card expense"><div class="label">ยอดรายจ่ายรวมทั้งระบบ</div><div class="value">${money(s.total_expense)} ฿</div></div>
+    <div class="card"><div class="label">วงเงินที่ผู้ใช้ตั้งไว้</div><div class="value">${num(s.total_budgets)}</div></div>
+    <div class="card"><div class="label">เป้าหมายการออม</div><div class="value">${num(s.total_goals)}</div><div class="sub">สำเร็จแล้ว ${num(s.completed_goals)} เป้าหมาย</div></div>
+    <div class="card"><div class="label">คำร้อง/ปัญหา</div><div class="value">${num(s.open_issues)} รอตอบ</div><div class="sub">ตอบแล้ว ${num(s.resolved_issues)} รายการ</div></div>
+    <div class="card"><div class="label">สลิปที่อัปโหลด (OCR)</div><div class="value">${num(s.total_slips)}</div></div>
+  </div>
+  <h3>สมัครสมาชิกใหม่ย้อนหลัง 6 เดือน</h3>
+  <table><tr><th>เดือน</th><th>จำนวนผู้สมัครใหม่</th></tr>${rows(s.monthly_signups, r => `<tr><td>${esc(r.ym)}</td><td>${num(r.cnt)} คน</td></tr>`)}</table>
+  <h3>หมวดหมู่ที่ถูกใช้บันทึกรายการมากที่สุด</h3>
+  <table><tr><th>หมวดหมู่</th><th>จำนวนครั้งที่ถูกใช้</th></tr>${rows(s.top_categories, r => `<tr><td>${esc(r.category_name)}</td><td>${num(r.usage_count)} ครั้ง</td></tr>`)}</table>`;
+}
+
+// ---------- categories (หมวดหมู่มาตรฐาน user_id = null) ----------
+async function renderCategories() {
+  const { data, error } = await db.from('categories').select().is('user_id', null).order('type').order('category_id');
+  if (error) throw error;
+  catsCache = data;
+  const table = (type) => {
+    const list = data.filter(c => c.type === type);
+    return `<h3>หมวดหมู่${type}</h3><table><tr><th>สี</th><th>ชื่อ</th><th>ไอคอน</th><th style="width:300px">จัดการ</th></tr>` +
+      (list.length ? list.map(c => `<tr>
+        <td><span class="swatch" style="background:${esc(c.icon_color || '#ccc')}"></span></td>
+        <td>${esc(c.category_name)}</td><td>${esc(c.icon || '-')}</td>
+        <td><div class="row">
+          <input id="n-${c.category_id}" value="${esc(c.category_name)}" style="width:110px">
+          <input id="i-${c.category_id}" value="${esc(c.icon || '')}" style="width:100px">
+          <input id="c-${c.category_id}" type="color" value="${/^#[0-9a-fA-F]{6}$/.test(c.icon_color || '') ? c.icon_color : '#7C3AED'}">
+          <button class="small gray" onclick="editCat(${Number(c.category_id)})">บันทึก</button>
+          <button class="small danger" onclick="delCat(${Number(c.category_id)})">ลบ</button>
+        </div></td></tr>`).join('') : '<tr><td colspan="4" class="empty">ยังไม่มีหมวดหมู่มาตรฐาน</td></tr>') + '</table>';
+  };
+  $('content').innerHTML = `<h2>จัดการหมวดหมู่มาตรฐานของระบบ</h2>
+  <p style="color:#888;font-size:13px">หมวดหมู่เหล่านี้จะแสดงให้ผู้ใช้งานทุกคนเห็นในแอป แยกจากหมวดหมู่ที่ผู้ใช้สร้างเอง</p>
+  <div class="box"><h3 style="margin-top:0">เพิ่มหมวดหมู่มาตรฐานใหม่</h3><div class="row">
+    <input id="newName" placeholder="ชื่อหมวดหมู่" style="flex:1;min-width:140px">
+    <select id="newType"><option>รายจ่าย</option><option>รายรับ</option></select>
+    <input id="newIcon" placeholder="ไอคอน (เช่น home, restaurant)" style="width:200px">
+    <input id="newColor" type="color" value="#7C3AED">
+    <button onclick="addCat()">เพิ่มหมวดหมู่</button></div></div>` + table('รายจ่าย') + table('รายรับ');
+}
+async function addCat() {
+  const name = $('newName').value.trim(); if (!name) return flash('กรุณากรอกชื่อหมวดหมู่', false);
+  const { error } = await db.from('categories').insert({ user_id: null, category_name: name, type: $('newType').value,
+    icon: $('newIcon').value.trim() || null, icon_color: $('newColor').value });
+  if (error) return fail(error); flash('เพิ่มหมวดหมู่มาตรฐานสำเร็จ'); show('categories');
+}
+async function editCat(id) {
+  const name = $('n-' + id).value.trim(); if (!name) return flash('ชื่อหมวดหมู่ห้ามว่าง', false);
+  const { error } = await db.from('categories').update({ category_name: name, icon: $('i-' + id).value.trim() || null, icon_color: $('c-' + id).value })
+    .eq('category_id', id).is('user_id', null);
+  if (error) return fail(error); flash('แก้ไขหมวดหมู่สำเร็จ'); show('categories');
+}
+async function delCat(id) {
+  const name = catsCache.find(c => c.category_id === id)?.category_name ?? '';
+  if (!confirm(`ลบหมวดหมู่ "${name}" ?\nรายการเดิมที่ใช้หมวดหมู่นี้จะกลายเป็น "ไม่มีหมวดหมู่"`)) return;
+  const { error } = await db.from('categories').delete().eq('category_id', id).is('user_id', null);
+  if (error) return fail(error); flash('ลบหมวดหมู่สำเร็จ'); show('categories');
+}
+
+// ---------- users ----------
+async function renderUsers(search = '') {
+  const { data, error } = await db.rpc('admin_users', { p_search: search }); if (error) throw error;
+  usersCache = data;
+  $('content').innerHTML = `<h2>จัดการบัญชีผู้ใช้</h2><br>
+  <div class="box"><div class="row"><input id="q" placeholder="ค้นหาชื่อหรืออีเมล" value="${esc(search)}" style="flex:1;min-width:200px"
+    onkeydown="if(event.key==='Enter')renderUsers(this.value).catch(fail)">
+    <button onclick="renderUsers($('q').value).catch(fail)">ค้นหา</button></div></div>
+  <table><tr><th>ชื่อ</th><th>อีเมล</th><th>สมัครเมื่อ</th><th>รายการ</th><th>คำร้อง</th><th>สถานะ</th><th>จัดการ</th></tr>` +
+  (data.length ? data.map(u => `<tr>
+    <td>${esc(u.name)}${u.is_admin ? ' <span class="badge active">admin</span>' : ''}</td><td>${esc(u.email)}</td><td>${esc(fmtDate(u.created_at))}</td>
+    <td>${num(u.transaction_count)}</td><td>${num(u.issue_count)}</td>
+    <td><span class="badge ${esc(u.status)}">${u.status === 'blocked' ? 'ถูกบล็อก' : 'ปกติ'}</span></td>
+    <td><div class="row">
+      <button class="small gray" onclick="setStatus(${Number(u.user_id)}, '${u.status === 'blocked' ? 'active' : 'blocked'}')">${u.status === 'blocked' ? 'ปลดบล็อก' : 'บล็อก'}</button>
+      <button class="small danger" onclick="delUser(${Number(u.user_id)})">ลบ</button>
+    </div></td></tr>`).join('') : '<tr><td colspan="7" class="empty">ไม่พบผู้ใช้</td></tr>') + '</table>';
+}
+async function setStatus(id, status) {
+  const { error } = await db.rpc('admin_set_user_status', { p_user_id: id, p_status: status });
+  if (error) return fail(error); flash(status === 'blocked' ? 'บล็อกผู้ใช้แล้ว' : 'ปลดบล็อกผู้ใช้แล้ว'); show('users');
+}
+async function delUser(id) {
+  const email = usersCache.find(u => u.user_id === id)?.email ?? '';
+  if (!confirm(`ลบบัญชี ${email} และข้อมูลที่เกี่ยวข้องทั้งหมด?\nการกระทำนี้ย้อนกลับไม่ได้`)) return;
+  const { error } = await db.rpc('admin_delete_user', { p_user_id: id });
+  if (error) return fail(error); flash('ลบบัญชีผู้ใช้แล้ว'); show('users');
+}
+
+boot();
+</script>
+</body>
+</html>
