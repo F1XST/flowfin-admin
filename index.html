@@ -131,7 +131,9 @@
   .issue .meta { font-size: 12px; color: var(--muted); margin: 2px 0 10px; }
   .issue .desc { white-space: pre-wrap; font-size: 14px; line-height: 1.5; }
   .issue .reply { margin-top: 12px; }
-  .issue .reply .btn { margin-top: 10px; width: 100%; }
+  .issue .reply .acts { display: flex; gap: 8px; margin-top: 10px; }
+  .issue .reply .acts .btn { flex: 1; }
+  .issue .reply .acts .btn.danger { flex: 0 0 auto; }
 
   /* ---------- หมวดหมู่ ---------- */
   .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
@@ -338,7 +340,8 @@ async function renderIssues() {
           <div class="meta">${esc(i.user_name)} · ${esc(i.user_email)} · ${esc(fmtDate(i.date_reported))}</div>
           <div class="desc">${esc(i.description)}</div>
           <div class="reply"><textarea id="reply-${Number(i.issue_id)}" placeholder="พิมพ์คำตอบ...">${esc(i.reply || '')}</textarea>
-            <button class="btn sm" onclick="replyIssue(${Number(i.issue_id)})">${i.reply ? 'แก้ไขคำตอบ' : 'ส่งคำตอบ'}</button></div>
+            <div class="acts"><button class="btn sm" onclick="replyIssue(${Number(i.issue_id)})">${i.reply ? 'แก้ไขคำตอบ' : 'ส่งคำตอบ'}</button>
+              <button class="btn sm danger" onclick="delIssue(${Number(i.issue_id)})">ลบ</button></div></div>
         </div>`).join('') + `</div>`);
 }
 function setIssueTab(t) { issueTab = t; show('issues'); }
@@ -348,6 +351,14 @@ async function replyIssue(id) {
   const { error } = await db.rpc('admin_reply_issue', { p_issue_id: id, p_reply: reply });
   if (error) return fail(error);
   flash('บันทึกคำตอบแล้ว'); show('issues'); refreshBadge().catch(() => {});
+}
+
+async function delIssue(id) {
+  const title = issuesCache.find(i => i.issue_id === id)?.title ?? '';
+  if (!confirm(`ลบคำร้อง "${title}" ?\nข้อความของผู้ใช้และคำตอบจะถูกลบถาวร`)) return;
+  const { error } = await db.rpc('admin_delete_issue', { p_issue_id: id });
+  if (error) return fail(error);
+  flash('ลบคำร้องแล้ว'); show('issues'); refreshBadge().catch(() => {});
 }
 
 // ---------- stats ----------
